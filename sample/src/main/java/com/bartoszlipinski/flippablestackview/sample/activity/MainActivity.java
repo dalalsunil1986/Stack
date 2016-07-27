@@ -69,8 +69,16 @@ public class MainActivity extends ActionBarActivity {
 
         mFlippableStack = (StackedFormsLayout) findViewById(R.id.flippable_stack_view);
         mFlippableStack.setFragmentManager(getSupportFragmentManager());
-        mFlippableStack.addForm(mViewPagerFragments.get(0));
-        mFlippableStack.layoutForms();
+
+        mFlippableStack.addAllForms(mViewPagerFragments);
+
+        mFlippableStack.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                touchEvent.setText("X axis event : "+motionEvent.getX());
+                return false;
+            }
+        });
 
 
     }

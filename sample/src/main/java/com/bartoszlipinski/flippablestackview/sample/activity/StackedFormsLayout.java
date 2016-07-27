@@ -1,11 +1,13 @@
 package com.bartoszlipinski.flippablestackview.sample.activity;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 
@@ -52,7 +54,6 @@ public class StackedFormsLayout extends FrameLayout {
     {
         fragments=new ArrayList<>();
         formLayoutIds=new ArrayList<>();
-        formLayoutIds.add(generateViewId());
         formViews=new ArrayList<>();
         transformer = new Transformer(4,DEFAULT_CURRENT_PAGE_SCALE, DEFAULT_TOP_STACKED_SCALE, DEFAULT_OVERLAP_FACTOR, Transformer.Gravity.CENTER);
     }
@@ -65,8 +66,25 @@ public class StackedFormsLayout extends FrameLayout {
 
    public void addForm(Fragment form)
    {
+       formsCount=fragments.size();
+
        fragments.add(form);
+       formLayoutIds.add(generateViewId());
+
    }
+
+    public void addAllForms(List<Fragment> forms)
+    {
+        for(Fragment form:forms)
+        {
+            fragments.add(form);
+            formLayoutIds.add(generateViewId());
+            addCurrentForm(fragments.indexOf(form));
+        }
+
+        formsCount=fragments.size();
+
+    }
 
 
     public void layoutForms()
@@ -74,11 +92,13 @@ public class StackedFormsLayout extends FrameLayout {
         removeAllViews();
         for(int position=0;position<=formsCount;position++)
         {
-            if(position==0)
+            if(position==0 && formsCount==1)
             {
                 layoutInitialForm(position);
                 return;
             }
+
+            addCurrentForm(position);
 
 
         }
@@ -87,16 +107,43 @@ public class StackedFormsLayout extends FrameLayout {
 
     private void layoutInitialForm(int position)
     {
-        LayoutParams lp = new LayoutParams( LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT );
+        LayoutParams lp = new LayoutParams( LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT );
         lp.gravity = Gravity.CENTER;
 
         LinearLayout layout = new LinearLayout(getContext());
         layout.setLayoutParams(lp);
-        layout.setId(formLayoutIds.get(0));
+        layout.setId(formLayoutIds.get(position));
         this.addView(layout);
 
         fragmentManager.beginTransaction().add(layout.getId(),fragments.get(position)).commit();
+    }
 
+    private void addCurrentForm(final int position)
+    {
+        LayoutParams lp = new LayoutParams( LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT );
+
+        final LinearLayout layout = new LinearLayout(getContext());
+        layout.setLayoutParams(lp);
+        layout.setId(formLayoutIds.get(position));
+        this.addView(layout);
+        fragmentManager.beginTransaction().add(layout.getId(),fragments.get(position)).commit();
+
+        ViewTreeObserver vto = layout.getViewTreeObserver();
+        vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+            @Override
+            public void onGlobalLayout() {
+                removeOnGlobalLayoutListener(layout,this);
+                transformer.transformPage(layout,position);
+            }
+        });
+    }
+
+    public static void removeOnGlobalLayoutListener(View v, ViewTreeObserver.OnGlobalLayoutListener listener){
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
+            v.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
+        } else {
+            v.getViewTreeObserver().removeOnGlobalLayoutListener(listener);
+        }
     }
 
     public static int generateViewId() {

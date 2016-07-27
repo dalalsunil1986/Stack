@@ -71,6 +71,7 @@ public class Transformer {
 
     public void transformPage(View view, float position) {
 
+        position=-position;
         Log.v("Transformer","Page Tranformer called for page "+position);
 
         int dimen;
@@ -90,9 +91,9 @@ public class Transformer {
 
         if (position < -mNumberOfStacked - 1) {
             view.setAlpha(0f);
-        } else if (position == 0) {
+        } else if (position <= 0) {
             float scale = mZeroPositionScale + (position * mStackedScaleFactor);
-            float baseTranslation = (-position * dimen);
+            float baseTranslation = (-position * mOverlap);
             float shiftTranslation = calculateShiftForScale(position, scale, dimen);
             view.setScaleX(scale);
 
@@ -100,7 +101,7 @@ public class Transformer {
             view.setTranslationX(baseTranslation + shiftTranslation);
 
 
-        } else if (position >= 1) {
+        } else if (position <= 1) {
             float baseTranslation = position * dimen;
             float scale = mZeroPositionScale - mValueInterpolator.map(mScaleInterpolator.getInterpolation(position));
             scale = (scale < 0) ? 0f : scale;
@@ -112,13 +113,15 @@ public class Transformer {
             view.setTranslationX(-baseTranslation - mBelowStackSpace - shiftTranslation);
 
 
+        } else if (position > 1) {
+            view.setAlpha(0f);
         }
     }
 
     private void calculateInitialValues(int dimen) {
         float scaledDimen = mZeroPositionScale * dimen;
 
-        float overlapBase = (dimen - scaledDimen) / (mNumberOfStacked);
+        float overlapBase = (dimen - scaledDimen) / (mNumberOfStacked*5);
         mOverlap = overlapBase * mOverlapFactor;
 
         float availableSpaceUnit = 0.5f * dimen * (1 - mOverlapFactor) * (1 - mZeroPositionScale);
