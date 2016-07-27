@@ -32,9 +32,10 @@ public class StackedFormsLayout extends FrameLayout {
     private List<Integer> formLayoutIds;
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
     private Transformer transformer;
-    float x1,x2;
+    float x1, x2;
     final int MIN_DISTANCE = 100;
     private float initialTouch;
+
     public StackedFormsLayout(Context context) {
         super(context);
         init();
@@ -102,46 +103,42 @@ public class StackedFormsLayout extends FrameLayout {
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 x1 = event.getX();
-                if(initialTouch==0)
-                    initialTouch=x1;
+                if (initialTouch == 0)
+                    initialTouch = x1;
 
                 return true;
             case MotionEvent.ACTION_UP:
                 x2 = event.getX();
 
-                Log.v("Swipe", "left to right detected "+x2);
-
                 float deltaX = x2 - x1;
                 if (Math.abs(deltaX) > MIN_DISTANCE) {
                     // Left to Right swipe action
                     if (x2 > x1) {
-                        Log.v("Swipe", "left to right detected");
 
-                        float swipeRightFactor = (event.getX()-initialTouch)/100;
-                        swipeFactor = swipeRightFactor;
+                        float swipeRightFactor = (event.getX() - initialTouch) / 100;
+                        swipeFactor = swipeRightFactor * 1.20f;
                     }
 
                     // Right to left swipe action
                     else {
-                        Log.v("Swipe", "right to left detected");
-                        float swipeLeftFactor = -(event.getX()-initialTouch)/100;
-                        swipeFactor = swipeLeftFactor/3;
+                        float swipeLeftFactor = -(event.getX() - initialTouch) / 100;
+                        swipeFactor = swipeLeftFactor / 6;
                     }
 
                     if (transformer != null && swipeFactor != 0) {
                         if (swipeFactor != Float.NEGATIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY) {
-                            // integral type
-                            Log.v("Swipe", "factor " + swipeFactor);
+
+
+                            if (swipeFactor > 8)
+                                swipeFactor = 8;
+
                             transformer.setOverlapFactor((float) (transformer.getDefaultOverlapFactor() * Math.ceil(swipeFactor)));
                             updateFormPositions();
                         }
                     }
 
-                } else {
-                    // consider as something else - a screen tap for example
                 }
-
-                initialTouch=0;
+                initialTouch = 0;
                 break;
         }
 
