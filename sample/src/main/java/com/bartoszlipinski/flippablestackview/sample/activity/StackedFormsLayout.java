@@ -5,7 +5,6 @@ import android.os.Build;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -18,12 +17,14 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
- * Created by Dell on 7/26/2016.
+ * A layout that provides a base for stacked forms.
  */
 public class StackedFormsLayout extends FrameLayout {
 
     private static final float DEFAULT_OVERLAP_FACTOR = 40.0f;
-
+    private static final float SWIPE_RIGHT_FACTOR = 1.20f;
+    private static final float SWIPE_LEFT_FACTOR = 0.16f;
+    private static final float MAXIMUM_SWIPE_FACTOR = 8.0f;
 
     private List<Fragment> fragments;
     private List<View> formViews;
@@ -32,8 +33,8 @@ public class StackedFormsLayout extends FrameLayout {
     private List<Integer> formLayoutIds;
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
     private Transformer transformer;
-    float x1, x2;
-    final int MIN_DISTANCE = 100;
+    private float x1, x2;
+    private final int MIN_DISTANCE = 100;
     private float initialTouch;
 
     public StackedFormsLayout(Context context) {
@@ -75,7 +76,7 @@ public class StackedFormsLayout extends FrameLayout {
         for (Fragment form : forms) {
             fragments.add(form);
             formLayoutIds.add(generateViewId());
-            addCurrentForm(fragments.indexOf(form));
+            addFormToLayout(fragments.indexOf(form));
         }
 
         formsCount = fragments.size();
@@ -86,57 +87,74 @@ public class StackedFormsLayout extends FrameLayout {
     public void layoutForms() {
         for (int position = 0; position <= formsCount; position++) {
             if (position == 0 && formsCount == 1) {
-                layoutInitialForm(position);
+                layoutInitialForm();
                 return;
             }
 
-            addCurrentForm(position);
+            addFormToLayout(position);
 
         }
     }
 
+    /***
+     * Touch event that's intercepted to provide form previews based on left and right swipes.
+     *
+     * @param event
+     * @return
+     */
+
     @Override
     public boolean onTouchEvent(MotionEvent event) {
 
+        /***
+         * Basically the number that will multiply the default overlap factor to layout each form
+         */
         float swipeFactor;
 
         switch (event.getAction()) {
             case MotionEvent.ACTION_DOWN:
+
                 x1 = event.getX();
+
+                /***
+                 * Tracking the initial touch on the screen so that it can be used to calculate the change that
+                 * took place on ACTION_DOWN and ACTION_UP
+                 */
                 if (initialTouch == 0)
                     initialTouch = x1;
 
                 return true;
             case MotionEvent.ACTION_UP:
-                x2 = event.getX();
 
+                x2 = event.getX();
                 float deltaX = x2 - x1;
                 if (Math.abs(deltaX) > MIN_DISTANCE) {
-                    // Left to Right swipe action
+                    /***
+                     * Left to Right swipe action
+                     */
                     if (x2 > x1) {
 
-                        float swipeRightFactor = (event.getX() - initialTouch) / 100;
-                        swipeFactor = swipeRightFactor * 1.20f;
+
+                        float offset = (event.getX() - initialTouch) / 100;
+                        swipeFactor = offset * SWIPE_RIGHT_FACTOR;
                     }
 
-                    // Right to left swipe action
+                    /**
+                     * Right to left swipe action
+                     */
                     else {
-                        float swipeLeftFactor = -(event.getX() - initialTouch) / 100;
-                        swipeFactor = swipeLeftFactor / 6;
+                        float offset = -(event.getX() - initialTouch) / 100;
+                        swipeFactor = offset * SWIPE_LEFT_FACTOR;
                     }
+
+                    swipeFactor = filterSwipeFactor(swipeFactor);
 
                     if (transformer != null && swipeFactor != 0) {
-                        if (swipeFactor != Float.NEGATIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY) {
 
+                        transformer.setOverlapFactor((transformer.getDefaultOverlapFactor() * swipeFactor));
+                        updateFormPositions();
 
-                            if (swipeFactor > 8)
-                                swipeFactor = 8;
-
-                            transformer.setOverlapFactor((float) (transformer.getDefaultOverlapFactor() * Math.ceil(swipeFactor)));
-                            updateFormPositions();
-                        }
                     }
-
                 }
                 initialTouch = 0;
                 break;
@@ -145,7 +163,14 @@ public class StackedFormsLayout extends FrameLayout {
         return super.onTouchEvent(event);
     }
 
-    private void layoutInitialForm(int position) {
+
+    /***
+     * Add the initial form to the layout that will be centered.
+     * It's position will change when sub forms are opened and it assumes the
+     * position that's supplied by the Stack Transformer.
+     */
+    private void layoutInitialForm() {
+        int position = 0;
         LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
         lp.gravity = Gravity.CENTER;
 
@@ -157,13 +182,22 @@ public class StackedFormsLayout extends FrameLayout {
         fragmentManager.beginTransaction().add(layout.getId(), fragments.get(position)).commit();
     }
 
+    /**
+     * Called to update all forms based on changes in either the current position of a page
+     * or the overly factor that affects the shift that each will have on the x axis.
+     */
     private void updateFormPositions() {
         for (View layout : formViews)
             transformer.transformPage(layout, formViews.indexOf(layout));
-
     }
 
-    private void addCurrentForm(final int position) {
+    /**
+     * Adds a form to the current layout using the position that it's current located in
+     * the list that stores all fragments.
+     *
+     * @param position
+     */
+    private void addFormToLayout(final int position) {
         LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.MATCH_PARENT);
 
         final LinearLayout layout = new LinearLayout(getContext());
@@ -183,6 +217,12 @@ public class StackedFormsLayout extends FrameLayout {
         });
     }
 
+    /**
+     * Global Layout Listener that targets newer version and also has backward compat.
+     *
+     * @param v
+     * @param listener
+     */
     public static void removeOnGlobalLayoutListener(View v, ViewTreeObserver.OnGlobalLayoutListener listener) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN) {
             v.getViewTreeObserver().removeGlobalOnLayoutListener(listener);
@@ -191,6 +231,11 @@ public class StackedFormsLayout extends FrameLayout {
         }
     }
 
+    /***
+     * Generates a unique view id that can be used for views.
+     *
+     * @return
+     */
     public static int generateViewId() {
         for (; ; ) {
             final int result = sNextGeneratedId.get();
@@ -201,5 +246,22 @@ public class StackedFormsLayout extends FrameLayout {
                 return result;
             }
         }
+    }
+
+    /**
+     * Ensures that the swipe factor value is a finite number.
+     * And also checks if its below the maximum limit whereafter it's set to it.
+     *
+     * @param swipeFactor
+     * @return
+     */
+    private float filterSwipeFactor(float swipeFactor) {
+        if (swipeFactor != Float.NEGATIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY && swipeFactor != Float.POSITIVE_INFINITY) {
+
+            if (swipeFactor > MAXIMUM_SWIPE_FACTOR)
+                swipeFactor = MAXIMUM_SWIPE_FACTOR;
+
+            return (float) Math.ceil(swipeFactor);
+        } else return 0;
     }
 }
