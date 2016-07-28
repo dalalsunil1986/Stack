@@ -11,6 +11,7 @@ import android.view.View;
  */
 public class StackTransformer {
 
+    private static final float DEFAULT_SWIPE_OVERLAY_FACTOR = 40;
     private int numberOfStacked;
     private float overlapFactor;
     private float defaultOverlapFactor;
@@ -26,7 +27,7 @@ public class StackTransformer {
 
         this.numberOfStacked = numberOfStacked;
         this.overlapFactor = overlapFactor;
-        this.defaultOverlapFactor = overlapFactor;
+        defaultOverlapFactor = DEFAULT_SWIPE_OVERLAY_FACTOR;
         currentFormIndex = 0;
     }
 
@@ -41,7 +42,7 @@ public class StackTransformer {
          * Calculates how far along the x axis a particular form should shift based on
          * the position and the overlay factor that's being used.
          */
-        float shiftTranslation = position * overlapFactor;
+        float shiftTranslation = position * (overlapFactor/numberOfStacked);
 
         /***
          * Increases the shift translation if there was a click event that set a form as the current one
