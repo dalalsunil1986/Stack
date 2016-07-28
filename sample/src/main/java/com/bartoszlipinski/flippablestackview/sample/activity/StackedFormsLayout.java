@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class StackedFormsLayout extends FrameLayout implements View.OnClickListener {
 
-    private static final float DEFAULT_OVERLAP_FACTOR = 40.0f;
+    public static final float DEFAULT_OVERLAP_FACTOR = 40.0f;
     private static final float SWIPE_RIGHT_FACTOR = 1.20f;
     private static final float SWIPE_LEFT_FACTOR = 0.16f;
     private static final float MAXIMUM_SWIPE_FACTOR = 8.0f;
@@ -165,6 +165,7 @@ public class StackedFormsLayout extends FrameLayout implements View.OnClickListe
 
                     }
                 }
+
                 initialTouch = 0;
                 break;
         }
@@ -280,11 +281,68 @@ public class StackedFormsLayout extends FrameLayout implements View.OnClickListe
         int position = formViews.indexOf(view);
         stackTransformer.setCurrentFormIndex(position);
         updateFormPositions();
+        Log.v("Click","On click triggered");
     }
 
     @Override
-    public boolean onInterceptTouchEvent(MotionEvent ev) {
-        onTouchEvent(ev);
+    public boolean onInterceptTouchEvent(MotionEvent event) {
+        /***
+         * Basically the number that will multiply the default overlap factor to layout each form
+         */
+        float swipeFactor;
+
+        switch (event.getAction()) {
+            case MotionEvent.ACTION_DOWN:
+
+                x1 = event.getX();
+
+                /***
+                 * Tracking the initial touch on the screen so that it can be used to calculate the change that
+                 * took place on ACTION_DOWN and ACTION_UP
+                 */
+                if (initialTouch == 0)
+                    initialTouch = x1;
+
+                return false;
+            case MotionEvent.ACTION_UP:
+
+                x2 = event.getX();
+                float deltaX = x2 - x1;
+                if (Math.abs(deltaX) > MIN_DISTANCE) {
+                    /***
+                     * Left to Right swipe action
+                     */
+                    if (x2 > x1) {
+
+
+                        float offset = (event.getX() - initialTouch) / 100;
+                        swipeFactor = offset * SWIPE_RIGHT_FACTOR;
+                    }
+
+                    /**
+                     * Right to left swipe action
+                     */
+                    else {
+                        float offset = -(event.getX() - initialTouch) / 100;
+                        swipeFactor = offset * SWIPE_LEFT_FACTOR;
+                    }
+
+                    swipeFactor = filterSwipeFactor(swipeFactor);
+
+                    Log.v("Swipe","Swipe factor "+swipeFactor);
+
+                    if (stackTransformer != null && swipeFactor != 0) {
+
+                        stackTransformer.setOverlapFactor((stackTransformer.getDefaultOverlapFactor() * swipeFactor));
+                        updateFormPositions();
+
+                        return true;
+                    }
+                }
+
+                initialTouch = 0;
+                break;
+        }
         return false;
     }
 }

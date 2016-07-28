@@ -37,7 +37,14 @@ public class StackTransformer {
             if (position > currentFormIndex)
                 shiftTranslation = shiftTranslation + (dimen * .8f);
 
+
         view.animate().translationX(shiftTranslation);
+
+        if(position==numberOfStacked-1)
+        {
+            currentFormIndex=0;
+        }
+
 
     }
 
