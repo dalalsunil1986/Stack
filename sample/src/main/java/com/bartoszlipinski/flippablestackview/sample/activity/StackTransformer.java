@@ -6,22 +6,23 @@ package com.bartoszlipinski.flippablestackview.sample.activity;
 
 import android.view.View;
 
-public class Transformer {
-
+public class StackTransformer {
 
     private int numberOfStacked;
     private float overlapFactor;
     private float defaultOverlapFactor;
+    private int currentFormIndex;
 
 
-    public Transformer(int numberOfStacked, float overlapFactor) {
+    public StackTransformer(int numberOfStacked, float overlapFactor) {
 
         this.numberOfStacked = numberOfStacked;
         this.overlapFactor = overlapFactor;
         this.defaultOverlapFactor = overlapFactor;
+        currentFormIndex = 0;
     }
 
-    public Transformer() {
+    public StackTransformer() {
     }
 
     public void transformPage(View view, float position) {
@@ -31,6 +32,10 @@ public class Transformer {
         dimen = view.getWidth();
 
         float shiftTranslation = position * overlapFactor;
+
+        if (currentFormIndex != 0 && currentFormIndex != numberOfStacked - 1)
+            if (position > currentFormIndex)
+                shiftTranslation = shiftTranslation + (dimen * .8f);
 
         view.animate().translationX(shiftTranslation);
 
@@ -58,5 +63,13 @@ public class Transformer {
 
     public void setDefaultOverlapFactor(float defaultOverlapFactor) {
         this.defaultOverlapFactor = defaultOverlapFactor;
+    }
+
+    public int getCurrentFormIndex() {
+        return currentFormIndex;
+    }
+
+    public void setCurrentFormIndex(int currentFormIndex) {
+        this.currentFormIndex = currentFormIndex;
     }
 }

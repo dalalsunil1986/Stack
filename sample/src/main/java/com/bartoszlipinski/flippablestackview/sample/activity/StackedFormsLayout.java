@@ -5,6 +5,7 @@ import android.os.Build;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -19,7 +20,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 /**
  * A layout that provides a base for stacked forms.
  */
-public class StackedFormsLayout extends FrameLayout {
+public class StackedFormsLayout extends FrameLayout implements View.OnClickListener {
 
     private static final float DEFAULT_OVERLAP_FACTOR = 40.0f;
     private static final float SWIPE_RIGHT_FACTOR = 1.20f;
@@ -32,7 +33,7 @@ public class StackedFormsLayout extends FrameLayout {
     private FragmentManager fragmentManager;
     private List<Integer> formLayoutIds;
     private static final AtomicInteger sNextGeneratedId = new AtomicInteger(1);
-    private Transformer transformer;
+    private StackTransformer stackTransformer;
     private float x1, x2;
     private final int MIN_DISTANCE = 100;
     private float initialTouch;
@@ -56,7 +57,8 @@ public class StackedFormsLayout extends FrameLayout {
         fragments = new ArrayList<>();
         formLayoutIds = new ArrayList<>();
         formViews = new ArrayList<>();
-        transformer = new Transformer(4, DEFAULT_OVERLAP_FACTOR);
+        stackTransformer = new StackTransformer(4, DEFAULT_OVERLAP_FACTOR);
+        setClickable(true);
     }
 
     public void setFragmentManager(FragmentManager fragmentManager) {
@@ -69,6 +71,9 @@ public class StackedFormsLayout extends FrameLayout {
 
         fragments.add(form);
         formLayoutIds.add(generateViewId());
+        stackTransformer.setNumberOfStacked(fragments.size());
+
+        layoutForms();
 
     }
 
@@ -76,8 +81,10 @@ public class StackedFormsLayout extends FrameLayout {
         for (Fragment form : forms) {
             fragments.add(form);
             formLayoutIds.add(generateViewId());
+            stackTransformer.setNumberOfStacked(fragments.size());
             addFormToLayout(fragments.indexOf(form));
         }
+
 
         formsCount = fragments.size();
 
@@ -149,9 +156,11 @@ public class StackedFormsLayout extends FrameLayout {
 
                     swipeFactor = filterSwipeFactor(swipeFactor);
 
-                    if (transformer != null && swipeFactor != 0) {
+                    Log.v("Swipe","Swipe factor "+swipeFactor);
 
-                        transformer.setOverlapFactor((transformer.getDefaultOverlapFactor() * swipeFactor));
+                    if (stackTransformer != null && swipeFactor != 0) {
+
+                        stackTransformer.setOverlapFactor((stackTransformer.getDefaultOverlapFactor() * swipeFactor));
                         updateFormPositions();
 
                     }
@@ -167,7 +176,7 @@ public class StackedFormsLayout extends FrameLayout {
     /***
      * Add the initial form to the layout that will be centered.
      * It's position will change when sub forms are opened and it assumes the
-     * position that's supplied by the Stack Transformer.
+     * position that's supplied by the Stack StackTransformer.
      */
     private void layoutInitialForm() {
         int position = 0;
@@ -188,7 +197,7 @@ public class StackedFormsLayout extends FrameLayout {
      */
     private void updateFormPositions() {
         for (View layout : formViews)
-            transformer.transformPage(layout, formViews.indexOf(layout));
+            stackTransformer.transformPage(layout, formViews.indexOf(layout));
     }
 
     /**
@@ -206,13 +215,14 @@ public class StackedFormsLayout extends FrameLayout {
         this.addView(layout);
         fragmentManager.beginTransaction().add(layout.getId(), fragments.get(position)).commit();
 
+        layout.setOnClickListener(this);
         formViews.add(layout);
         ViewTreeObserver vto = layout.getViewTreeObserver();
         vto.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
             @Override
             public void onGlobalLayout() {
                 removeOnGlobalLayoutListener(layout, this);
-                transformer.transformPage(layout, position);
+                stackTransformer.transformPage(layout, position);
             }
         });
     }
@@ -263,5 +273,18 @@ public class StackedFormsLayout extends FrameLayout {
 
             return (float) Math.ceil(swipeFactor);
         } else return 0;
+    }
+
+    @Override
+    public void onClick(View view) {
+        int position = formViews.indexOf(view);
+        stackTransformer.setCurrentFormIndex(position);
+        updateFormPositions();
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent(MotionEvent ev) {
+        onTouchEvent(ev);
+        return false;
     }
 }
