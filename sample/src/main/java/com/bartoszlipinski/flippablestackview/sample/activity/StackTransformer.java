@@ -42,7 +42,7 @@ public class StackTransformer {
          * Calculates how far along the x axis a particular form should shift based on
          * the position and the overlay factor that's being used.
          */
-        float shiftTranslation = position * (overlapFactor/numberOfStacked);
+        float shiftTranslation = position * overlapFactor;
 
         /***
          * Increases the shift translation if there was a click event that set a form as the current one

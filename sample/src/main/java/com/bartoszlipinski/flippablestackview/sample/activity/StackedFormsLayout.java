@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class StackedFormsLayout extends FrameLayout implements View.OnClickListener {
 
-    public static final float DEFAULT_OVERLAP_FACTOR = 500.0f;
+    public static final float DEFAULT_OVERLAP_FACTOR = 40.0f;
     private static final float SWIPE_RIGHT_FACTOR = 1.20f;
     private static final float SWIPE_LEFT_FACTOR = 0.16f;
     private static final float MAXIMUM_SWIPE_FACTOR = 8.0f;
