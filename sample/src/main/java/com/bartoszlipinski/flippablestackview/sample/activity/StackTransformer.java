@@ -6,6 +6,9 @@ package com.bartoszlipinski.flippablestackview.sample.activity;
 
 import android.view.View;
 
+/***
+ * Handles all animation and translation related to the stacking of forms.
+ */
 public class StackTransformer {
 
     private int numberOfStacked;
@@ -14,6 +17,11 @@ public class StackTransformer {
     private int currentFormIndex;
 
 
+    /***
+     * Used to set the current number of forms and the overlay factor.
+     * @param numberOfStacked
+     * @param overlapFactor
+     */
     public StackTransformer(int numberOfStacked, float overlapFactor) {
 
         this.numberOfStacked = numberOfStacked;
@@ -22,8 +30,6 @@ public class StackTransformer {
         currentFormIndex = 0;
     }
 
-    public StackTransformer() {
-    }
 
     public void transformPage(View view, float position) {
 
@@ -31,8 +37,16 @@ public class StackTransformer {
 
         dimen = view.getWidth();
 
+        /***
+         * Calculates how far along the x axis a particular form should shift based on
+         * the position and the overlay factor that's being used.
+         */
         float shiftTranslation = position * overlapFactor;
 
+        /***
+         * Increases the shift translation if there was a click event that set a form as the current one
+         * in the stack and it has elements that are currently ahead of it.
+         */
         if (currentFormIndex != 0 && currentFormIndex != numberOfStacked - 1)
             if (position > currentFormIndex)
                 shiftTranslation = shiftTranslation + (dimen * .8f);
@@ -40,25 +54,19 @@ public class StackTransformer {
 
         view.animate().translationX(shiftTranslation);
 
-        if(position==numberOfStacked-1)
-        {
-            currentFormIndex=0;
+        /***
+         * Sets the current form index back to zero once the entire stack of forms has been animated.
+         */
+        if (position == numberOfStacked - 1) {
+            currentFormIndex = 0;
         }
 
-
-    }
-
-    public int getNumberOfStacked() {
-        return numberOfStacked;
     }
 
     public void setNumberOfStacked(int numberOfStacked) {
         this.numberOfStacked = numberOfStacked;
     }
 
-    public float getOverlapFactor() {
-        return overlapFactor;
-    }
 
     public void setOverlapFactor(float overlapFactor) {
         this.overlapFactor = overlapFactor;
@@ -68,13 +76,6 @@ public class StackTransformer {
         return defaultOverlapFactor;
     }
 
-    public void setDefaultOverlapFactor(float defaultOverlapFactor) {
-        this.defaultOverlapFactor = defaultOverlapFactor;
-    }
-
-    public int getCurrentFormIndex() {
-        return currentFormIndex;
-    }
 
     public void setCurrentFormIndex(int currentFormIndex) {
         this.currentFormIndex = currentFormIndex;
